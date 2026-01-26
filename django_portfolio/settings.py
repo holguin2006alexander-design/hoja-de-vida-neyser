@@ -12,20 +12,39 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =====================
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 
+# DEBUG=1 en local, DEBUG=0 en Render
 DEBUG = os.getenv("DEBUG", "1") == "1"
 
-RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+# =====================
+# HOSTS / CSRF (Render friendly)
+# =====================
+# Permite tu dominio de Render y también local
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    ".onrender.com",
+]
 
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS = [RENDER_EXTERNAL_HOSTNAME, "localhost", "127.0.0.1"]
-else:
-    ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+# Si quieres permitir dominios extra, puedes usar ALLOWED_HOSTS env var (opcional)
+extra_hosts = os.getenv("ALLOWED_HOSTS", "").strip()
+if extra_hosts:
+    for h in extra_hosts.split(","):
+        h = h.strip()
+        if h and h not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(h)
 
-CSRF_TRUSTED_ORIGINS = []
+# CSRF para Render
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
+]
+
+# Si pones un dominio extra en ALLOWED_HOSTS, también lo agregamos como trusted origin
 for host in ALLOWED_HOSTS:
-    host = host.strip()
-    if host and host not in ["localhost", "127.0.0.1"]:
-        CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
+    if host and host not in ["localhost", "127.0.0.1", ".onrender.com"]:
+        # Si el host viene como ".midominio.com" o "midominio.com" igual sirve
+        h = host.lstrip(".")
+        CSRF_TRUSTED_ORIGINS.append(f"https://{h}")
+        CSRF_TRUSTED_ORIGINS.append(f"https://*.{h}")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -79,15 +98,21 @@ TEMPLATES = [
 ]
 
 # =====================
-# DATABASE
+# DATABASE (LOCAL + RENDER)
 # =====================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
+    # En Render (Postgres)
     DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=not DEBUG,  # SSL en producción
+        )
     }
 else:
+    # En local (SQLite)
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
