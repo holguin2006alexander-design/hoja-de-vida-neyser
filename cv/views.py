@@ -316,14 +316,15 @@ def imprimir_hoja_vida(request):
     c = canvas.Canvas(response, pagesize=A4)
     W, H = A4
 
-    # Colores
-    navy = colors.HexColor("#0b2a57")
-    navy2 = colors.HexColor("#0a2347")
-    white = colors.white
-    text = colors.HexColor("#0f172a")
-    muted = colors.HexColor("#475569")
-    border = colors.HexColor("#dbe4f5")
-    chip = colors.HexColor("#e9f0ff")
+   # Colores (plantilla tipo Canva)
+    sidebar_bg = colors.HexColor("#0b0f17")   # casi negro
+    sidebar_line = colors.HexColor("#2a2f3a") # lineas suaves
+    sidebar_text = colors.HexColor("#e5e7eb") # gris claro
+    sidebar_muted = colors.HexColor("#b8c0cc")
+
+    main_text = colors.HexColor("#0f172a")
+    main_muted = colors.HexColor("#475569")
+    border = colors.HexColor("#e5e7eb")
 
     # Layout
     margin = 1.2 * cm
