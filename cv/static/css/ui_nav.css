@@ -7,11 +7,11 @@
   justify-content:space-between;
   gap:12px;
   padding: 12px 18px;
-  background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(90deg, #0b1220 0%, #0b2a57 45%, #2563eb 100%);
   position: sticky;
   top: 0;
   z-index: 99;
-  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  box-shadow: 0 8px 22px rgba(2,6,23,.25);
 }
 
 .nav-brand{

@@ -246,37 +246,65 @@ def imprimir_hoja_vida(request):
     if not perfil.permitir_impresion:
         return HttpResponseForbidden("No autorizado", status=403)
 
+    # =========================
+    # Selección de secciones (desde el modal del front)
+    # exp=1/0, cursos=1/0, logros=1/0, pa=1/0, proy=1/0, vg=1/0
+    # - logros -> Reconocimientos
+    # - proy   -> Productos laborales
+    # =========================
+    def _flag(param: str, default: bool) -> bool:
+        v = request.GET.get(param)
+        if v is None:
+            return default
+        v = str(v).strip().lower()
+        return v not in {"0", "false", "no", "off"}
+
+    inc_exp = _flag("exp", True)
+    inc_cursos = _flag("cursos", True)
+    inc_logros = _flag("logros", True)
+    inc_pa = _flag("pa", True)
+    inc_proy = _flag("proy", True)
+    inc_vg = _flag("vg", False)
+
     # ✅ Orden por fecha en todas las secciones (más reciente -> más antigua)
     cursos_qs = list(
         perfil.cursos
         .filter(activarparaqueseveaenfront=True)
         .order_by("-fechafin", "-fechainicio", "-idcursorealizado")
-    )
+    ) if inc_cursos else []
+
     exp_qs = list(
         perfil.experiencias
         .filter(activarparaqueseveaenfront=True)
         .order_by("-fechafin", "-fechainicio", "-idexperiencialaboral")
-    )
+    ) if inc_exp else []
+
+    # "logros" del modal = Reconocimientos
     rec_qs = list(
         perfil.reconocimientos
         .filter(activarparaqueseveaenfront=True)
         .order_by("-fechareconocimiento", "-idreconocimiento")
-    )
+    ) if inc_logros else []
+
     pa_qs = list(
         perfil.productos_academicos
         .filter(activarparaqueseveaenfront=True)
         .order_by("-idproductoacademico")
-    )
+    ) if inc_pa else []
+
+    # "proy" del modal = Productos laborales
     pl_qs = list(
         perfil.productos_laborales
         .filter(activarparaqueseveaenfront=True)
         .order_by("-fechaproducto", "-idproductolaboral")
-    )
+    ) if inc_proy else []
+
     vg_qs = list(
         perfil.venta_garage
         .filter(activarparaqueseveaenfront=True)
         .order_by("-fecha", "-idventagarage")
-    )
+    ) if inc_vg else []
+
 
     cert_imgs, normal_imgs = _collect_images(perfil, cursos_qs, exp_qs, pa_qs, pl_qs, rec_qs)
 

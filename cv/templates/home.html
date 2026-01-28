@@ -115,19 +115,64 @@
         </div>
 
         {% if permitir_impresion %}
-          <a class="side-btn" href="{% url 'imprimir_hoja_vida' %}" target="_blank" rel="noopener">
-            Generar PDF completo →
-          </a>
+          <button type="button" class="side-btn" id="btnOpenPdfModal">Descargar PDF →</button>
         {% endif %}
-      </div>
 
-      <div class="side-card side-card--hint">
-        <div class="side-title">Tip</div>
-        <p class="side-text">
-          Para que una sección no aparezca en el PDF, solo deja esa sección sin registros.
-          Los certificados (imágenes) se imprimen en hoja completa automáticamente.
-        </p>
+        <!-- Modal selección de secciones (Opción 1: centrado) -->
+        <div class="modal-backdrop" id="pdfModal" aria-hidden="true">
+          <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pdfModalTitle">
+            <div class="modal-title" id="pdfModalTitle">Seleccionar Secciones para PDF</div>
+
+            <form class="modal-form" id="pdfModalForm">
+              <label class="chk"><input type="checkbox" name="exp" checked> <span>Incluir Experiencia</span></label>
+              <label class="chk"><input type="checkbox" name="cursos" checked> <span>Incluir Cursos/Títulos</span></label>
+              <label class="chk"><input type="checkbox" name="logros" checked> <span>Incluir Logros</span></label>
+              <label class="chk"><input type="checkbox" name="pa" checked> <span>Incluir Prod. Académicos</span></label>
+              <label class="chk"><input type="checkbox" name="proy" checked> <span>Incluir Proyectos</span></label>
+              <label class="chk"><input type="checkbox" name="vg"> <span>Incluir Venta Garage</span></label>
+            </form>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-danger" id="btnClosePdfModal">Cancelar</button>
+              <button type="button" class="btn-primary" id="btnGoPdf">Generar PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <script>
+        (function () {
+          const modal = document.getElementById('pdfModal');
+          const openBtn = document.getElementById('btnOpenPdfModal');
+          const closeBtn = document.getElementById('btnClosePdfModal');
+          const goBtn = document.getElementById('btnGoPdf');
+          const form = document.getElementById('pdfModalForm');
+          if (!modal || !openBtn || !closeBtn || !goBtn || !form) return;
+
+          const open = () => { modal.classList.add('is-open'); modal.setAttribute('aria-hidden','false'); form.querySelector('input')?.focus(); };
+          const close = () => { modal.classList.remove('is-open'); modal.setAttribute('aria-hidden','true'); openBtn.focus(); };
+
+          openBtn.addEventListener('click', open);
+          closeBtn.addEventListener('click', close);
+          modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+          document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('is-open')) close(); });
+
+          goBtn.addEventListener('click', () => {
+            const params = new URLSearchParams();
+            const isOn = (name) => !!form.querySelector(`input[name="${name}"]`)?.checked;
+            params.set('exp', isOn('exp') ? '1' : '0');
+            params.set('cursos', isOn('cursos') ? '1' : '0');
+            params.set('logros', isOn('logros') ? '1' : '0');
+            params.set('pa', isOn('pa') ? '1' : '0');
+            params.set('proy', isOn('proy') ? '1' : '0');
+            params.set('vg', isOn('vg') ? '1' : '0');
+
+            window.open("{% url 'imprimir_hoja_vida' %}?" + params.toString(), "_blank", "noopener");
+            close();
+          });
+        })();
+        </script>
       </div>
+</div>
     </aside>
 
   {% else %}
