@@ -3,6 +3,9 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 
+# =========================
+# ENV
+# =========================
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,6 +24,9 @@ CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
 ]
 
+# =========================
+# APPS
+# =========================
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -29,13 +35,17 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # 👇 Cloudinary
+    # Cloudinary
     "cloudinary",
     "cloudinary_storage",
 
+    # App
     "cv",
 ]
 
+# =========================
+# MIDDLEWARE
+# =========================
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -48,8 +58,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "django_portfolio.urls"
+
 WSGI_APPLICATION = "django_portfolio.wsgi.application"
 
+# =========================
+# TEMPLATES
+# =========================
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -66,6 +80,9 @@ TEMPLATES = [
     },
 ]
 
+# =========================
+# DATABASE
+# =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
@@ -84,19 +101,36 @@ else:
         }
     }
 
+# =========================
+# LOCALE
+# =========================
 LANGUAGE_CODE = "es-es"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# =========================
+# STATIC FILES
+# =========================
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "/media/"
-
-# 👇 Cloudinary maneja MEDIA
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# =========================
+# MEDIA / CLOUDINARY
+# =========================
+MEDIA_URL = "/media/"
+
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET"),
+}
+
+# =========================
+# DEFAULT FIELD
+# =========================
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
