@@ -8,6 +8,5 @@ urlpatterns = [
     path("", include("cv.urls")),
 ]
 
-if settings.DEBUG:
-    # Servir media files localmente
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# ✅ Para que /media/ funcione en local Y en Render
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
