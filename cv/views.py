@@ -28,11 +28,14 @@ from .models import (
 # Helpers
 # =========================
 def _get_perfil_activo():
-    # SOLO perfil activo. Si no hay, devuelve None (y el front no debe mostrar nada).
     return Datospersonales.objects.filter(perfilactivo=True).order_by("-idperfil").first()
 
 
 def _image_reader_from_field(image_field):
+    """
+    Compatible con FileSystemStorage y Cloudinary:
+    - Si el storage expone .open() funciona OK
+    """
     image_field.open("rb")
     try:
         data = image_field.read()
@@ -94,10 +97,6 @@ def _pairs_from_fields(pairs):
 
 
 def _collect_images(perfil, cursos, experiencias, prod_acad, prod_lab, reconoc):
-    """
-    certificados: imágenes tipo certificado (una por hoja)
-    normales: imágenes tipo "foto del producto" (en grid)
-    """
     certificados = []
     normales = []
 
@@ -129,7 +128,6 @@ def _collect_images(perfil, cursos, experiencias, prod_acad, prod_lab, reconoc):
         add_normal("Productos laborales", base, p.imagenproducto, "Imagen del producto")
         add_cert("Productos laborales", base, p.certificado_imagen)
 
-    # ✅ FIX: en tu modelo el campo es entidadpatrocinadora
     for r in reconoc:
         tipo = r.tiporeconocimiento or "Reconocimiento"
         ent = f" - {r.entidadpatrocinadora}" if r.entidadpatrocinadora else ""
@@ -191,7 +189,6 @@ def experiencia(request):
 
 def productos_academicos(request):
     perfil = _get_perfil_activo()
-    # no tiene fecha, lo dejamos por id
     items = (
         perfil.productos_academicos
         .filter(activarparaqueseveaenfront=True)
@@ -246,12 +243,6 @@ def imprimir_hoja_vida(request):
     if not perfil.permitir_impresion:
         return HttpResponseForbidden("No autorizado", status=403)
 
-    # =========================
-    # Selección de secciones (desde el modal del front)
-    # exp=1/0, cursos=1/0, logros=1/0, pa=1/0, proy=1/0, vg=1/0
-    # - logros -> Reconocimientos
-    # - proy   -> Productos laborales
-    # =========================
     def _flag(param: str, default: bool) -> bool:
         v = request.GET.get(param)
         if v is None:
@@ -266,7 +257,6 @@ def imprimir_hoja_vida(request):
     inc_proy = _flag("proy", True)
     inc_vg = _flag("vg", False)
 
-    # ✅ Orden por fecha en todas las secciones (más reciente -> más antigua)
     cursos_qs = list(
         perfil.cursos
         .filter(activarparaqueseveaenfront=True)
@@ -279,7 +269,6 @@ def imprimir_hoja_vida(request):
         .order_by("-fechafin", "-fechainicio", "-idexperiencialaboral")
     ) if inc_exp else []
 
-    # "logros" del modal = Reconocimientos
     rec_qs = list(
         perfil.reconocimientos
         .filter(activarparaqueseveaenfront=True)
@@ -292,7 +281,6 @@ def imprimir_hoja_vida(request):
         .order_by("-idproductoacademico")
     ) if inc_pa else []
 
-    # "proy" del modal = Productos laborales
     pl_qs = list(
         perfil.productos_laborales
         .filter(activarparaqueseveaenfront=True)
@@ -305,7 +293,6 @@ def imprimir_hoja_vida(request):
         .order_by("-fecha", "-idventagarage")
     ) if inc_vg else []
 
-
     cert_imgs, normal_imgs = _collect_images(perfil, cursos_qs, exp_qs, pa_qs, pl_qs, rec_qs)
 
     FONT, FONT_B = _register_pretty_fonts()
@@ -316,15 +303,23 @@ def imprimir_hoja_vida(request):
     c = canvas.Canvas(response, pagesize=A4)
     W, H = A4
 
-   # Colores (plantilla tipo Canva)
-    sidebar_bg = colors.HexColor("#0b0f17")   # casi negro
-    sidebar_line = colors.HexColor("#2a2f3a") # lineas suaves
-    sidebar_text = colors.HexColor("#e5e7eb") # gris claro
+    # ====== COLORES (y alias para que NO reviente) ======
+    sidebar_bg = colors.HexColor("#0b0f17")
+    sidebar_line = colors.HexColor("#2a2f3a")
+    sidebar_text = colors.HexColor("#e5e7eb")
     sidebar_muted = colors.HexColor("#b8c0cc")
 
     main_text = colors.HexColor("#0f172a")
     main_muted = colors.HexColor("#475569")
     border = colors.HexColor("#e5e7eb")
+
+    # aliases (lo que te estaba faltando)
+    navy = sidebar_bg
+    navy2 = colors.HexColor("#0b2a57")
+    text = main_text
+    muted = main_muted
+    white = colors.white
+    chip = colors.HexColor("#eef2ff")
 
     # Layout
     margin = 1.2 * cm
@@ -338,7 +333,7 @@ def imprimir_hoja_vida(request):
     lead_small = 12.5
 
     def draw_sidebar_background():
-        c.setFillColor(navy)
+        c.setFillColor(sidebar_bg)
         c.rect(0, 0, sidebar_w_total, H, stroke=0, fill=1)
 
     def draw_circle_image(image_reader, cx, cy, r):
@@ -350,7 +345,7 @@ def imprimir_hoja_vida(request):
         c.restoreState()
 
     def hr_sidebar(y):
-        c.setStrokeColor(colors.HexColor("#2a4a7d"))
+        c.setStrokeColor(sidebar_line)
         c.setLineWidth(1)
         c.line(margin, y, margin + sidebar_w - 0.2 * cm, y)
 
@@ -365,19 +360,20 @@ def imprimir_hoja_vida(request):
                 pass
 
         nombre = f"{(perfil.nombres or '').strip()} {(perfil.apellidos or '').strip()}".strip() or "Perfil"
-        c.setFillColor(white)
+        c.setFillColor(sidebar_text)
         c.setFont(FONT_B, 14.2)
         c.drawString(margin, top_y - 4.05 * cm, nombre[:28])
 
         desc_local = _clean(perfil.descripcionperfil)
         if desc_local:
-            c.setFillColor(colors.HexColor("#d7e6ff"))
+            c.setFillColor(sidebar_muted)
             c.setFont(FONT, 9.6)
             _draw_wrapped(c, desc_local, margin, top_y - 4.65 * cm, sidebar_w - 0.2 * cm, FONT, 9.6, 12)
 
         yL = top_y - 5.9 * cm
         hr_sidebar(yL + 0.45 * cm)
-        c.setFillColor(colors.HexColor("#d7e6ff"))
+
+        c.setFillColor(sidebar_text)
         c.setFont(FONT_B, 10)
         c.drawString(margin, yL, "DATOS PERSONALES")
         yL -= 0.65 * cm
@@ -398,11 +394,12 @@ def imprimir_hoja_vida(request):
         ])
 
         for label, val in dp_pairs:
-            c.setFillColor(colors.HexColor("#d7e6ff"))
+            c.setFillColor(sidebar_muted)
             c.setFont(FONT_B, 9.1)
             c.drawString(margin, yL, f"{label}:")
             yL -= 0.35 * cm
-            c.setFillColor(white)
+
+            c.setFillColor(sidebar_text)
             c.setFont(FONT, 9.5)
             yL = _draw_wrapped(c, val, margin, yL, sidebar_w - 0.2 * cm, FONT, 9.5, 11.5)
             yL -= 0.2 * cm
@@ -448,6 +445,7 @@ def imprimir_hoja_vida(request):
             c.setFillColor(text)
             c.setFont(FONT_B, 9.8)
             c.drawString(inner_x, yy, f"{label}:")
+
             c.setFillColor(muted)
             c.setFont(FONT, 9.8)
             yy = _draw_wrapped(c, val, inner_x + 3.25 * cm, yy, inner_w - 3.25 * cm, FONT, 9.8, lead_small)
@@ -672,7 +670,7 @@ def imprimir_hoja_vida(request):
                 c.setStrokeColor(border)
                 c.roundRect(x, y_ev - img_h - caption_h, col_w, caption_h, 9, stroke=1, fill=1)
 
-                c.setFillColor(navy)
+                c.setFillColor(navy2)
                 c.setFont(FONT_B, 9.2)
                 c.drawString(x + 0.25 * cm, y_ev - img_h - 0.5 * cm, (ev["section"] or "")[:30])
 
