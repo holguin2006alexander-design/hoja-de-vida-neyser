@@ -33,15 +33,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "cloudinary",
+    "cloudinary_storage",
+
     "cv",
 ]
 
-# Solo si hay credenciales (Render)
-if USE_CLOUDINARY:
-    INSTALLED_APPS += [
-        "cloudinary",
-        "cloudinary_storage",
-    ]
 
 # =========================
 # MIDDLEWARE
