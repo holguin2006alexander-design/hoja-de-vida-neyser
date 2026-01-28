@@ -18,14 +18,12 @@ DEBUG = os.getenv("DEBUG", "1") == "1"
 # =====================
 # HOSTS / CSRF (Render friendly)
 # =====================
-# Permite tu dominio de Render y también local
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     ".onrender.com",
 ]
 
-# Si quieres permitir dominios extra, puedes usar ALLOWED_HOSTS env var (opcional)
 extra_hosts = os.getenv("ALLOWED_HOSTS", "").strip()
 if extra_hosts:
     for h in extra_hosts.split(","):
@@ -33,15 +31,12 @@ if extra_hosts:
         if h and h not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(h)
 
-# CSRF para Render
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
 ]
 
-# Si pones un dominio extra en ALLOWED_HOSTS, también lo agregamos como trusted origin
 for host in ALLOWED_HOSTS:
     if host and host not in ["localhost", "127.0.0.1", ".onrender.com"]:
-        # Si el host viene como ".midominio.com" o "midominio.com" igual sirve
         h = host.lstrip(".")
         CSRF_TRUSTED_ORIGINS.append(f"https://{h}")
         CSRF_TRUSTED_ORIGINS.append(f"https://*.{h}")
@@ -103,16 +98,14 @@ TEMPLATES = [
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # En Render (Postgres)
     DATABASES = {
         "default": dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require=not DEBUG,  # SSL en producción
+            ssl_require=not DEBUG,
         )
     }
 else:
-    # En local (SQLite)
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -144,17 +137,23 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    }
-}
-
 # =====================
 # MEDIA FILES
 # =====================
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# =====================
+# STORAGES (🔥 ARREGLO AQUÍ 🔥)
+# =====================
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # =====================
 # DEFAULT
